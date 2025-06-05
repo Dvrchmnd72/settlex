@@ -6,6 +6,7 @@ def chat_visibility(request):
 
     # Paths or prefixes where chat should be disabled
     excluded_prefixes = [
+        "/login/",
         "/account/login/",
         "/account/two_factor/",
         "/two_factor/",  # Catch any two_factor views
