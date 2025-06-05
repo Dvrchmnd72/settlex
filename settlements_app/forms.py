@@ -115,10 +115,20 @@ class ValidationStepForm(AuthenticationTokenForm):
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
 
-    def __init__(self, *args, **kwargs):
-        self.device = kwargs.pop('device', None)
+    def __init__(self, key, user, device=None, metadata=None, *args, **kwargs):
+        """Extend ``TOTPDeviceForm`` to also accept a device instance.
+
+        ``two_factor`` relies on inspecting the ``__init__`` signature of the
+        form to decide which arguments to pass in ``get_form_kwargs``. The
+        original implementation used ``*args`` and ``**kwargs`` only, which
+        meant ``key`` and ``user`` were never passed, resulting in a missing QR
+        code.  Explicit parameters ensure the base class receives the expected
+        values and the wizard can properly initialise the form.
+        """
+
+        self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(*args, **kwargs)
+        super().__init__(key=key, user=user, metadata=metadata, *args, **kwargs)
 
         self.qr_code = None
         self.secret_b32 = None
