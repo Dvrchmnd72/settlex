@@ -1,0 +1,75 @@
+{# templates/two_factor/login.html #}
+{% extends 'two_factor/_base.html' %}
+{% load static %}
+
+{% block title %}Login – SettleX{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title text-center">Login to SettleX</h2>
+
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %}" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <form method="post" class="form">
+            {% csrf_token %}
+            {{ wizard.management_form }}
+
+            {% if wizard.steps.current == 'auth' %}
+              <div class="mb-3">
+                <label for="id_auth-username" class="form-label">Email or Username</label>
+                {{ wizard.form.username }}
+              </div>
+              <div class="mb-3">
+                <label for="id_auth-password" class="form-label">Password</label>
+                <div class="input-group">
+                  {{ wizard.form.password }}
+                  <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+            {% elif wizard.steps.current == 'token' %}
+              <div class="mb-3">
+                <label for="id_token-otp_token" class="form-label">Authentication Code</label>
+                {{ wizard.form.otp_token }}
+                <div class="form-text">
+                  Enter the 6-digit code from your authenticator app.
+                </div>
+              </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary w-100">Continue</button>
+          </form>
+
+          {% if wizard.steps.current == 'auth' %}
+            <div class="text-center mt-3">
+              <p>Don’t have an account? <a href="{% url 'settlements_app:register' %}">Register here</a>.</p>
+              <p><a href="{% url 'settlements_app:password_reset' %}">Forgotten Password?</a></p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('togglePassword')?.addEventListener('click', function () {
+      const pw = document.querySelector('input[type="password"]');
+      const icon = this.querySelector('i');
+      if (pw && icon) {
+        pw.type = pw.type === 'password' ? 'text' : 'password';
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+      }
+    });
+  </script>
+{% endblock %}

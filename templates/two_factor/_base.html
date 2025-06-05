@@ -1,0 +1,15 @@
+{# templates/two_factor/_base.html #}
+{% extends 'settlements_app/base_public.html' %}
+{% load static %}
+
+{% block extra_media %}
+  {{ block.super }}
+  {# any 2FA‐specific CSS/JS here #}
+{% endblock %}
+
+{% block general_content %}
+  <div class="container py-5">
+    {% block content %}{% endblock %}
+  </div>
+{% endblock %}
+

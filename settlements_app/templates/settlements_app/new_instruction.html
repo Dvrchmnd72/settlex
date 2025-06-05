@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+{% extends 'settlements_app/base.html' %}
+{% load static %}
+
+{% block inner_content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">New Settlement Instruction</h5>
+        </div>
+        <div class="card-body">
+            <!-- Add enctype for form submission -->
+            <form id="instructionForm" action="{% url 'settlements_app:new_instruction' %}" method="post">
+                {% csrf_token %}
+
+                <!-- File Reference -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="file_reference" class="form-label">File Reference</label>
+                        <input type="text" class="form-control" id="file_reference" name="file_reference" placeholder="Enter file reference" required>
+                    </div>
+                </div>
+
+                <!-- Settlement Type -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="settlement_type" class="form-label">Settlement Type</label>
+                        <select class="form-select" id="settlement_type" name="settlement_type">
+                            <option value="purchase" selected>Purchase</option>
+                            <option value="sale">Sale</option>
+                            <option value="lodge_mortgage">Lodge Mortgage</option>
+                            <option value="discharge_mortgage">Discharge Mortgage</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Settlement Date & Time -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="settlement_date" class="form-label">Settlement Date</label>
+                        <input type="date" class="form-control" id="settlement_date" name="settlement_date" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="settlement_time" class="form-label">Settlement Time</label>
+                        <input type="time" class="form-control" id="settlement_time" name="settlement_time" required>
+                    </div>
+                </div>
+
+                <!-- Property Address -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="property_address" class="form-label">Property Address</label>
+                        <input type="text" class="form-control" id="property_address" name="property_address" placeholder="Enter property address" required>
+                    </div>
+                </div>
+
+                <!-- Title Reference(s) -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="title_reference" class="form-label">Title Reference(s)</label>
+                        <input type="text" class="form-control" id="title_reference" name="title_reference" placeholder="Enter title reference(s), separated by commas if more than one" required>
+                    </div>
+                </div>
+
+                <!-- Purchase Fields -->
+                <div id="purchaseFields" class="d-none settlement-fields">
+                    <h5 class="text-muted mb-3">Purchase Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="purchaser_name" class="form-label">Full Name of Purchaser</label>
+                            <input type="text" class="form-control" id="purchaser_name" name="purchaser_name" placeholder="Enter purchaser's full name">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="purchaser_mobile" class="form-label">Mobile Phone Number</label>
+                            <input type="text" class="form-control" id="purchaser_mobile" name="purchaser_mobile" placeholder="Enter mobile number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sale Fields -->
+                <div id="saleFields" class="d-none settlement-fields">
+                    <h5 class="text-muted mb-3">Sale Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="seller_name" class="form-label">Full Name of Seller</label>
+                            <input type="text" class="form-control" id="seller_name" name="seller_name" placeholder="Enter seller's full name">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="seller_contact" class="form-label">Seller's Contact</label>
+                            <input type="text" class="form-control" id="seller_contact" name="seller_contact" placeholder="Enter seller's contact">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lodge Mortgage Fields -->
+                <div id="lodgeMortgageFields" class="d-none settlement-fields">
+                    <h5 class="text-muted mb-3">Lodge Mortgage Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="mortgagee_name" class="form-label">Mortgagee Name</label>
+                            <input type="text" class="form-control" id="mortgagee_name" name="mortgagee_name" placeholder="Enter mortgagee name">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discharge Mortgage Fields -->
+                <div id="dischargeMortgageFields" class="d-none settlement-fields">
+                    <h5 class="text-muted mb-3">Discharge Mortgage Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="mortgage_number" class="form-label">Mortgage Number</label>
+                            <input type="text" class="form-control" id="mortgage_number" name="mortgage_number" placeholder="Enter mortgage number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary w-30">Submit Instruction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const settlementType = document.getElementById('settlement_type');
+        const fieldsets = {
+            "purchase": "purchaseFields",
+            "sale": "saleFields",
+            "lodge_mortgage": "lodgeMortgageFields",
+            "discharge_mortgage": "dischargeMortgageFields"
+        };
+
+        function showFields(selectedType) {
+            document.querySelectorAll('.settlement-fields').forEach(field => field.classList.add('d-none'));
+            if (fieldsets[selectedType]) {
+                document.getElementById(fieldsets[selectedType]).classList.remove('d-none');
+            }
+        }
+
+        settlementType.addEventListener('change', function () {
+            showFields(settlementType.value);
+        });
+
+        // Show the correct fields on page load
+        showFields(settlementType.value);
+    });
+</script>
+{% endblock %}
