@@ -134,6 +134,7 @@ class SettlexTwoFactorSetupView(SetupView):
                     confirmed=False,
                     key=key,
                     digits=6,
+                    name="default",
                 )
                 extra_data['device_id'] = device.id
                 self.storage.extra_data = extra_data
