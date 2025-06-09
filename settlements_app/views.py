@@ -75,6 +75,13 @@ class SettlexTwoFactorSetupView(SetupView):
 
     template_name = 'two_factor/setup.html'
 
+    def get_form_kwargs(self, step=None):
+        kwargs = super().get_form_kwargs(step)
+        if step == 'validation':
+            kwargs['user'] = self.request.user
+            kwargs['device'] = self.get_device()
+        return kwargs
+
     def get_device(self):
         """
         Custom retrieval of the TOTPDevice using extra_data stored during the wizard.

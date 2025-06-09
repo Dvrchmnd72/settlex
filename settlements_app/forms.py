@@ -85,14 +85,18 @@ class WelcomeStepForm(DummyForm):
     pass
 
 class ValidationStepForm(AuthenticationTokenForm):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        self.device = kwargs.pop('device', None)
-        logger.debug("🔐 ValidationStepForm initialized with user: %s and device: %s", self.user, self.device)
-        super().__init__(self.user, self.device, *args, **kwargs)
+    def __init__(self, *, user, device, **kwargs):
+        self.user = user
+        self.device = device
+        logger.debug(
+            "🔐 ValidationStepForm initialized with user: %s and device: %s",
+            self.user,
+            self.device,
+        )
+        super().__init__(user, device, **kwargs)
 
     def clean_token(self):
-        token = self.cleaned_data.get("token")
+        token = self.cleaned_data.get("otp_token")
         if not self.device:
             logger.warning("⚠️ No device assigned to ValidationStepForm.")
             raise ValidationError("Internal error: device missing.")
