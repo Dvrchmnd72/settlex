@@ -166,3 +166,54 @@ class CustomTOTPDeviceForm(TOTPDeviceForm):
         }
         logger.debug("📡 CustomTOTPDeviceForm.get_context_data(): %s", context)
         return context
+
+
+class TOTPDeviceGenerateForm(TOTPDeviceForm):
+    """Form used for generating a QR code without requiring a token."""
+
+    def __init__(self, *args, **kwargs):
+        self.device = kwargs.pop('device', None)
+        logger.debug("🛠 TOTPDeviceGenerateForm INIT: device=%s", self.device)
+        super().__init__(*args, **kwargs)
+
+        # Remove the token field defined by ``TOTPDeviceForm``
+        self.fields.pop('token', None)
+
+        self.qr_code = None
+        self.secret_b32 = None
+        if self.device:
+            try:
+                key_bytes = unhexlify(self.device.key.encode())
+                self.secret_b32 = base64.b32encode(key_bytes).decode("utf-8").replace("=", "")
+                issuer = "Settlex"
+                label = quote(f"{issuer}:{self.device.user.email}")
+                config_url = (
+                    f"otpauth://totp/{label}?secret={self.secret_b32}"
+                    f"&issuer={issuer}&algorithm=SHA1&digits=6&period=30"
+                )
+
+                qr = qrcode.make(config_url)
+                buffer = BytesIO()
+                qr.save(buffer, format="PNG")
+                self.qr_code = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+                logger.debug("📡 QR code generated for: %s", config_url)
+            except BinasciiError:
+                logger.error("🚨 Device key is not a valid hex string: %s", self.device.key)
+            except Exception:
+                logger.exception("⚠️ Failed to generate QR code")
+
+    def save(self):
+        if self.device:
+            # Device is created in the view; just persist any updates
+            self.device.save()
+            logger.debug("💾 TOTP device saved (unconfirmed): %s", self.device)
+        return self.device
+
+    def get_context_data(self):
+        context = {
+            'qr_code_base64': self.qr_code,
+            'totp_secret': self.secret_b32,
+        }
+        logger.debug("📡 TOTPDeviceGenerateForm.get_context_data(): %s", context)
+        return context
