@@ -25,7 +25,7 @@ from django.contrib.auth.decorators import login_required
 import base64
 import os
 from django.utils.crypto import get_random_string
-from .forms import WelcomeStepForm, ValidationStepForm
+from .forms import WelcomeStepForm
 from two_factor.forms import DeviceValidationForm
 from two_factor.forms import TOTPDeviceForm
 import inspect
@@ -75,7 +75,6 @@ class SettlexTwoFactorSetupView(SetupView):
     form_list = (
         ('welcome', WelcomeStepForm),
         ('generator', CustomTOTPDeviceForm),
-        ('validation', ValidationStepForm),
     )
 
     template_name = 'two_factor/setup.html'
@@ -83,7 +82,6 @@ class SettlexTwoFactorSetupView(SetupView):
     def get_form_list(self):
         form_list = super().get_form_list()
         form_list['generator'] = CustomTOTPDeviceForm
-        form_list['validation'] = ValidationStepForm
         return form_list
 
     def get_device(self):
@@ -115,7 +113,7 @@ class SettlexTwoFactorSetupView(SetupView):
         kwargs = self.get_form_kwargs(step)
 
         device = None
-        if step in ('generator', 'validation'):
+        if step == 'generator':
             extra_data = self.storage.extra_data or {}
             device_id = extra_data.get('device_id')
 
@@ -231,8 +229,8 @@ class SettlexTwoFactorSetupView(SetupView):
         Called when all forms are submitted and valid.
         Redirect to login after 2FA setup is complete.
         """
-        logger.info("✅ 2FA setup complete. Redirecting to login.")
-        return redirect(reverse_lazy('two_factor:login'))
+        logger.info("✅ 2FA setup complete. Redirecting to dashboard.")
+        return redirect(reverse_lazy('settlements_app:my_settlements'))
 
 # ✅ Custom Password Reset View to Fix NoReverseMatch
 class CustomPasswordResetView(PasswordResetView):

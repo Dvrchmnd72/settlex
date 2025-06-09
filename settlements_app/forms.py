@@ -3,7 +3,7 @@ from django import forms
 from urllib.parse import quote
 from django.contrib.auth.models import User
 from .models import Instruction, Document, Firm, Solicitor
-from two_factor.forms import TOTPDeviceForm, AuthenticationTokenForm
+from two_factor.forms import TOTPDeviceForm
 from django_otp.plugins.otp_totp.models import TOTPDevice
 import qrcode
 import base64
@@ -84,37 +84,6 @@ class WelcomeStepForm(DummyForm):
     """Placeholder form for the welcome step."""
     pass
 
-class ValidationStepForm(AuthenticationTokenForm):
-    def __init__(self, *args, user=None, device=None, **kwargs):
-        self.user = user
-        self.device = device
-        logger.debug(
-            "🔐 ValidationStepForm initialized with user: %s and device: %s",
-            self.user,
-            self.device,
-        )
-        super().__init__(self.user, self.device, *args, **kwargs)
-
-    def clean_token(self):
-        token = self.cleaned_data.get("token")
-        if not self.device:
-            logger.warning("⚠️ No device assigned to ValidationStepForm.")
-            raise ValidationError("Internal error: device missing.")
-
-        if not self.device.verify_token(token):
-            logger.warning("❌ Invalid token entered for device ID: %s", self.device.id)
-            raise ValidationError("Entered token is not valid. Please check your device time and try again.")
-
-        logger.info("✅ Token validated for device ID: %s", self.device.id)
-        return token
-
-    def save(self):
-        """Mark device as confirmed after successful token validation."""
-        if self.device:
-            self.device.confirmed = True
-            self.device.save()
-            logger.info("✅ Device %s confirmed and saved", self.device.id)
-        return self.device
 
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
