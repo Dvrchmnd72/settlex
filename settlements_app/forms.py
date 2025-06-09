@@ -75,8 +75,9 @@ class DocumentUploadForm(forms.ModelForm):
         return document
 
 class DummyForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+    def __init__(self, user=None, *args, **kwargs):
+        """Base form that stores the current user for later use."""
+        self.user = user
         logger.debug("👤 DummyForm initialized with user: %s", self.user)
         super().__init__(*args, **kwargs)
 
@@ -85,11 +86,16 @@ class WelcomeStepForm(DummyForm):
     pass
 
 class ValidationStepForm(AuthenticationTokenForm):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        self.device = kwargs.pop('device', None)
-        logger.debug("🔐 ValidationStepForm initialized with user: %s and device: %s", self.user, self.device)
-        super().__init__(self.user, self.device, *args, **kwargs)
+    def __init__(self, user, device, *args, **kwargs):
+        """Form used in the validation step of 2FA setup."""
+        self.user = user
+        self.device = device
+        logger.debug(
+            "🔐 ValidationStepForm initialized with user: %s and device: %s",
+            self.user,
+            self.device,
+        )
+        super().__init__(user, device, *args, **kwargs)
 
     def clean_token(self):
         token = self.cleaned_data.get("token")
@@ -115,10 +121,11 @@ class ValidationStepForm(AuthenticationTokenForm):
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
 
-    def __init__(self, *args, **kwargs):
-        self.device = kwargs.pop('device', None)
+    def __init__(self, key, user, metadata=None, device=None, **kwargs):
+        """Form displaying a QR code and verifying the TOTP token."""
+        self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(*args, **kwargs)
+        super().__init__(key=key, user=user, metadata=metadata, **kwargs)
 
         self.qr_code = None
         self.secret_b32 = None
