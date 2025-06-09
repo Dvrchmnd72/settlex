@@ -137,6 +137,7 @@ class SettlexTwoFactorSetupView(SetupView):
                 )
                 extra_data['device_id'] = device.id
                 self.storage.extra_data = extra_data
+                self.client.session['settlex_two_factor_setup_view'] = self.storage.extra_data  # Store it in session
                 logger.debug("🛠 Created new TOTPDevice (ID: %s) with key: %s", device.id, device.key)
 
         # Ensure that the device is properly passed to the form
@@ -144,6 +145,7 @@ class SettlexTwoFactorSetupView(SetupView):
             kwargs['device'] = device
 
         return form_class(data=data, files=files, **kwargs)
+
 
 
     def get_context_data(self, form, **kwargs):
