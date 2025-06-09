@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django_otp.plugins.otp_totp.models import TOTPDevice
 from django_otp.oath import totp
 from Settlex import settings
+from two_factor.utils import default_device
 
 MIDDLEWARE_NO_ENFORCE = [mw for mw in settings.MIDDLEWARE if mw != 'Settlex.middleware.enforce_2fa.Enforce2FAMiddleware']
 
@@ -64,7 +65,9 @@ class TwoFactorSetupFlowTests(TestCase):
             'validation-token': token,
         }, follow=True)
 
-        # Assert that the setup is complete
-        self.assertRedirects(resp, reverse('two_factor:setup_complete'))
+        # Assert that the setup is complete and user is returned to the login page
+        self.assertRedirects(resp, reverse('two_factor:login'))
         device.refresh_from_db()
+        # The device should be confirmed and also set as the default for the user
         self.assertTrue(device.confirmed)
+        self.assertEqual(default_device(self.user), device)

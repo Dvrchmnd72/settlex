@@ -231,6 +231,9 @@ class SettlexTwoFactorSetupView(SetupView):
         Called when all forms are submitted and valid.
         Redirect to login after 2FA setup is complete.
         """
+        # Let the parent class handle finalising the device, ensuring it is set
+        # as the user's default and marked confirmed
+        super().done(form_list, **kwargs)
         logger.info("✅ 2FA setup complete. Redirecting to login.")
         return redirect(reverse_lazy('two_factor:login'))
 
