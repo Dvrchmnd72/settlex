@@ -127,8 +127,9 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Avoid reverse_lazy here, just use the resolved path
-LOGIN_URL = "/account/login/"
+# Use the login view defined in ``settlements_app`` for authentication
+# redirects.
+LOGIN_URL = reverse_lazy('settlements_app:login')
 LOGIN_REDIRECT_URL = reverse_lazy("settlements_app:my_settlements")
 LOGOUT_REDIRECT_URL = reverse_lazy("settlements_app:home")
 
