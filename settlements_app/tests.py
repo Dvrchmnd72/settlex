@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from collections import OrderedDict
 from types import SimpleNamespace
 
-from two_factor.models import TOTPDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 from .views import view_settlement, SettlexTwoFactorSetupView
