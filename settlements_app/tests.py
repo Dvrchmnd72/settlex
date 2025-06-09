@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from collections import OrderedDict
 from types import SimpleNamespace
 
-from two_factor.models import TOTPDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 from .views import view_settlement, SettlexTwoFactorSetupView
@@ -37,7 +37,8 @@ class TwoFactorSetupViewTests(TestCase):
         view = SettlexTwoFactorSetupView()
         view.form_list = OrderedDict(view.form_list)
         view.setup(request)
-        view.storage = SimpleNamespace(validated_step_data={}, extra_data={}, data={})
+        view.storage = SimpleNamespace(
+            validated_step_data={}, extra_data={}, data={}, prefix='settlex_two_factor_setup_view')
         view.condition_dict = {}
         return view
 
@@ -75,5 +76,5 @@ class TwoFactorFullFlowTests(TestCase):
         # Step 3: Access the 2FA setup page
         setup_url = reverse('two_factor:setup')
         response = self.client.get(setup_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "QR code")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('settlements_app:two_factor_setup'))
