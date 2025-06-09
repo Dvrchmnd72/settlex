@@ -120,7 +120,7 @@ class SettlexTwoFactorSetupView(SetupView):
                 device = TOTPDevice.objects.create(
                     user=kwargs['user'],
                     confirmed=False,
-                    key=kwargs['key'],
+                    key=self.storage.extra_data.get('key'),
                     digits=6,
                 )
                 extra_data['device_id'] = device.id
@@ -134,7 +134,7 @@ class SettlexTwoFactorSetupView(SetupView):
                     "🔄 Using existing unconfirmed TOTPDevice ID: %s",
                     device.id)
                 # Ensure the stored key matches the key generated for this step
-                device.key = kwargs['key']
+                device.key = self.storage.extra_data.get('key')
                 device.confirmed = False
                 device.throttling_failure_count = 0
                 device.throttling_failure_timestamp = None
