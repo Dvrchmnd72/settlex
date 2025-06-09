@@ -132,6 +132,7 @@ class SettlexTwoFactorSetupView(SetupView):
                 device = TOTPDevice.objects.create(
                     user=self.request.user,
                     confirmed=False,
+                    name="default",
                     key=key,
                     digits=6,
                 )
