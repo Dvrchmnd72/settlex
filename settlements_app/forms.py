@@ -85,11 +85,15 @@ class WelcomeStepForm(DummyForm):
     pass
 
 class ValidationStepForm(AuthenticationTokenForm):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        self.device = kwargs.pop('device', None)
-        logger.debug("🔐 ValidationStepForm initialized with user: %s and device: %s", self.user, self.device)
-        super().__init__(self.user, self.device, *args, **kwargs)
+    def __init__(self, user, device, *args, **kwargs):
+        logger.debug(
+            "🔐 ValidationStepForm initialized with user: %s and device: %s",
+            user,
+            device,
+        )
+        super().__init__(user, device, *args, **kwargs)
+        self.user = user
+        self.device = device
 
     def clean_token(self):
         token = self.cleaned_data.get("token")
@@ -115,10 +119,10 @@ class ValidationStepForm(AuthenticationTokenForm):
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
 
-    def __init__(self, *args, **kwargs):
-        self.device = kwargs.pop('device', None)
+    def __init__(self, key, user, device=None, metadata=None, *args, **kwargs):
+        super().__init__(key=key, user=user, metadata=metadata, **kwargs)
+        self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(*args, **kwargs)
 
         self.qr_code = None
         self.secret_b32 = None
