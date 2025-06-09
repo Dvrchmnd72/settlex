@@ -108,14 +108,17 @@ class SettlexTwoFactorSetupView(SetupView):
     def get_form(self, step=None, data=None, files=None):
         step = step or self.steps.current or self.steps.first
         form_class = self.form_list[step]
-        logger.debug("📋 get_form called — step=%s, form_class=%s", step, form_class.__name__)
+        logger.debug(
+            "📋 get_form called — step=%s, form_class=%s",
+            step,
+            form_class.__name__)
         kwargs = self.get_form_kwargs(step)
 
+        device = None
         if step in ('generator', 'validation'):
             extra_data = self.storage.extra_data or {}
             device_id = extra_data.get('device_id')
 
-            device = None
             if device_id:
                 try:
                     device = TOTPDevice.objects.get(id=int(device_id))
@@ -123,17 +126,9 @@ class SettlexTwoFactorSetupView(SetupView):
                 except (TOTPDevice.DoesNotExist, ValueError):
                     logger.warning("⚠️ Invalid or missing device_id; creating new TOTPDevice")
 
-            # Ensure key is always present in kwargs
-            key = extra_data.get("key")
-            if not key:
-                key = secrets.token_hex(20)
-                extra_data['key'] = key
-                self.storage.extra_data = extra_data
-                logger.debug("🔑 Generated new TOTP key: %s", key)
-
-            kwargs['key'] = key
-
             if not device:
+                logger.debug("🔧 Creating new TOTP device.")
+                key = kwargs['key']
                 device = TOTPDevice.objects.create(
                     user=self.request.user,
                     confirmed=False,
@@ -143,19 +138,13 @@ class SettlexTwoFactorSetupView(SetupView):
                 extra_data['device_id'] = device.id
                 self.storage.extra_data = extra_data
                 logger.debug("🛠 Created new TOTPDevice (ID: %s) with key: %s", device.id, device.key)
-            else:
-                device.key = key
-                device.confirmed = False
-                device.throttling_failure_count = 0
-                device.throttling_failure_timestamp = None
-                device.save()
-                logger.debug("🔄 Updated existing TOTPDevice ID: %s", device.id)
 
-            if 'device' in inspect.signature(form_class).parameters:
-                kwargs['device'] = device
+        # Ensure that the device is properly passed to the form
+        if 'device' in inspect.signature(form_class).parameters:
+            kwargs['device'] = device
 
-        logger.debug("🚦 get_form: step=%s device=%s (id=%s)", step, device, getattr(device, 'id', None))
         return form_class(data=data, files=files, **kwargs)
+
 
     def get_context_data(self, form, **kwargs):
         step = self.steps.current or self.steps.first
