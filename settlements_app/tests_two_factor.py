@@ -45,6 +45,7 @@ class TwoFactorSetupFlowTests(TestCase):
             wizard_data['extra_data'] = extra_data
             session['settlex_two_factor_setup_view'] = wizard_data
             session.save()  # Save session after adding the device_id
+            device_id = device.id
 
         # Fetch the device and generate token
         device = TOTPDevice.objects.get(id=device_id)
