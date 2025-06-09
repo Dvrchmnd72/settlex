@@ -145,6 +145,12 @@ class SettlexTwoFactorSetupView(SetupView):
         if 'device' in inspect.signature(form_class).parameters:
             kwargs['device'] = device
 
+        # Include prefix and initial data like the base wizard implementation
+        kwargs.update({
+            'prefix': self.get_form_prefix(step, form_class),
+            'initial': self.get_form_initial(step),
+        })
+
         return form_class(data=data, files=files, **kwargs)
 
 
