@@ -22,7 +22,7 @@ from django.contrib.auth.decorators import login_required
 import base64
 import os
 from django.utils.crypto import get_random_string
-from .forms import WelcomeStepForm, ValidationStepForm
+from .forms import WelcomeStepForm, ValidationStepForm, TOTPDeviceGenerateForm
 from two_factor.forms import DeviceValidationForm
 from two_factor.forms import TOTPDeviceForm
 from django.contrib.auth.forms import AuthenticationForm
@@ -40,7 +40,6 @@ from datetime import timedelta
 from django.urls import reverse
 from datetime import datetime
 from django.utils.decorators import method_decorator
-from settlements_app.forms import CustomTOTPDeviceForm
 from two_factor.views.core import SetupView
 from two_factor.views.core import LoginView
 import pytz  # ✅ Required for timezone handling
@@ -69,7 +68,7 @@ class SettlexTwoFactorLoginView(LoginView):
 class SettlexTwoFactorSetupView(SetupView):
     form_list = (
         ('welcome', WelcomeStepForm),
-        ('generator', CustomTOTPDeviceForm),
+        ('generator', TOTPDeviceGenerateForm),
         ('validation', ValidationStepForm),
     )
 
