@@ -115,10 +115,39 @@ class ValidationStepForm(AuthenticationTokenForm):
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
 
-    def __init__(self, *args, **kwargs):
-        self.device = kwargs.pop('device', None)
+    def __init__(self, *, user, key, device=None, **kwargs):
+        """Initialize the form with keyword-only arguments.
+
+        ``two_factor`` passes a variety of parameters to the form during the
+        setup wizard.  Only ``user``, ``key`` and ``metadata`` are understood by
+        :class:`~two_factor.forms.TOTPDeviceForm`.  Any unexpected keywords must
+        be dropped before calling ``super().__init__`` to avoid ``TypeError``
+        being raised by :class:`django.forms.Form`.
+        """
+
+        self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(*args, **kwargs)
+
+        # Filter out unexpected kwargs.  Only pass through kwargs recognised by
+        # ``TOTPDeviceForm`` or ``forms.Form`` (e.g. ``data``/``files`` and
+        # optional ``metadata``).
+        allowed = {
+            "data",
+            "files",
+            "auto_id",
+            "prefix",
+            "initial",
+            "error_class",
+            "label_suffix",
+            "empty_permitted",
+            "field_order",
+            "use_required_attribute",
+            "renderer",
+            "metadata",
+        }
+        parent_kwargs = {k: kwargs[k] for k in list(kwargs.keys()) if k in allowed}
+
+        super().__init__(key=key, user=user, **parent_kwargs)
 
         self.qr_code = None
         self.secret_b32 = None
