@@ -11,11 +11,15 @@ class Enforce2FAMiddleware:
         if request.user.is_authenticated and not request.user.is_staff:
             if not default_device(request.user):
                 safe_paths = [
-                    reverse('two_factor:login'),
-                    reverse('two_factor:setup'),
-                    reverse('settlements_app:logout'),  # Ensure 'settlements_app:logout' is used
+                    # The login view for the application lives within the
+                    # ``settlements_app`` namespace.
+                    reverse('settlements_app:login'),
+                    # Allow access to the 2FA setup wizard itself.
+                    reverse('settlements_app:two_factor_setup'),
+                    # Users should always be able to log out.
+                    reverse('settlements_app:logout'),
                 ]
                 if not any(request.path.startswith(path) for path in safe_paths):
-                    return redirect('two_factor:setup')
+                    return redirect('settlements_app:two_factor_setup')
 
         return self.get_response(request)

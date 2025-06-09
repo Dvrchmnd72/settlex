@@ -75,8 +75,8 @@ class DocumentUploadForm(forms.ModelForm):
         return document
 
 class DummyForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
         logger.debug("👤 DummyForm initialized with user: %s", self.user)
         super().__init__(*args, **kwargs)
 
@@ -85,10 +85,14 @@ class WelcomeStepForm(DummyForm):
     pass
 
 class ValidationStepForm(AuthenticationTokenForm):
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
-        self.device = kwargs.pop('device', None)
-        logger.debug("🔐 ValidationStepForm initialized with user: %s and device: %s", self.user, self.device)
+    def __init__(self, *args, user=None, device=None, **kwargs):
+        self.user = user
+        self.device = device
+        logger.debug(
+            "🔐 ValidationStepForm initialized with user: %s and device: %s",
+            self.user,
+            self.device,
+        )
         super().__init__(self.user, self.device, *args, **kwargs)
 
     def clean_token(self):
@@ -115,10 +119,10 @@ class ValidationStepForm(AuthenticationTokenForm):
 class CustomTOTPDeviceForm(TOTPDeviceForm):
     token = forms.CharField(label="Token", max_length=6)
 
-    def __init__(self, *args, **kwargs):
-        self.device = kwargs.pop('device', None)
+    def __init__(self, *args, user=None, device=None, key=None, **kwargs):
+        self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(*args, **kwargs)
+        super().__init__(key=key, user=user, **kwargs)
 
         self.qr_code = None
         self.secret_b32 = None

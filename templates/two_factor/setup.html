@@ -42,7 +42,7 @@
               <img src="data:image/png;base64,{{ form.qr_code|safe }}" alt="QR Code" class="img-fluid mb-3 border rounded p-2">
               <p class="text-muted small">
                 Can’t scan it? Enter this key manually:<br>
-                <strong>{{ form.totp_secret }}</strong>
+                <strong>{{ totp_secret }}</strong>
               </p>
             {% else %}
               <p class="text-danger">⚠️ QR code could not be generated.</p>
@@ -51,13 +51,9 @@
             <form method="post">
               {% csrf_token %}
               {{ wizard.management_form }}
-              {{ form.non_field_errors }}
+              {{ wizard.form.non_field_errors }}
 
-              {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-              {% endfor %}
-
-              {% for field in form.visible_fields %}
+              {% for field in wizard.form.visible_fields %}
                 <div class="mb-3 text-start">
                   <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                   {{ field }}
@@ -78,10 +74,13 @@
               {{ wizard.management_form }}
               {{ wizard.form.non_field_errors }}
 
-              <div class="mb-3 text-start">
-                <label for="{{ wizard.form.token.id_for_label }}" class="form-label">Authentication Code</label>
-                {{ wizard.form.token }}
-              </div>
+              {% for field in wizard.form.visible_fields %}
+                <div class="mb-3 text-start">
+                  <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                  {{ field }}
+                  {{ field.errors }}
+                </div>
+              {% endfor %}
 
               <button type="submit" class="btn btn-success w-100">Verify and Enable</button>
             </form>

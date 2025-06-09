@@ -9,14 +9,15 @@ from .views import (
     mark_messages_read, check_typing_status, upload_chat_file, delete_message,
     CustomPasswordResetView
 )
-from two_factor.views import LoginView, SetupView  # ✅ Use built-in 2FA views
+from settlements_app.views import SettlexTwoFactorSetupView  # ✅ your custom 2FA setup view
+from two_factor.views import LoginView  # ✅ using default LoginView
 
 app_name = 'settlements_app'
 
 urlpatterns = [
     path("", home, name="home"),
     path("login/", LoginView.as_view(), name="login"),
-    path("account/two_factor/setup/", SetupView.as_view(), name="two_factor_setup"),
+    path("account/two_factor/setup/", SettlexTwoFactorSetupView.as_view(), name="two_factor_setup"),  # ✅ enabled
     path("logout/", logout_view, name="logout"),
     path("register/", register, name="register"),
     path("password-reset/", CustomPasswordResetView.as_view(), name="password_reset"),
@@ -27,7 +28,6 @@ urlpatterns = [
     path("edit-instruction/<int:instruction_id>/", edit_instruction, name="edit_instruction"),
     path("delete-instruction/<int:instruction_id>/", delete_instruction, name="delete_instruction"),
     path("settlement/<int:settlement_id>/", view_settlement, name="view_settlement"),
-
 
     # Chat
     path("long-poll-messages/", long_poll_messages, name="long_poll_messages"),
