@@ -51,10 +51,9 @@ class TwoFactorSetupFlowTests(TestCase):
         device = TOTPDevice.objects.get(id=device_id)
         token = str(totp(device.bin_key, device.step, device.t0, device.digits, device.drift)).zfill(device.digits)
 
-        # Step 4: POST token to generator step
+        # Step 4: Submit generator step (no token required)
         resp = self.client.post(self.url, {
             'settlex_two_factor_setup_view-current_step': 'generator',
-            'generator-token': token,
         }, follow=True)
         self.assertEqual(self._current_step(resp), 'validation')
 

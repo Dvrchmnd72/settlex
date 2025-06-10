@@ -116,13 +116,13 @@ class ValidationStepForm(AuthenticationTokenForm):
             logger.info("✅ Device %s confirmed and saved", self.device.id)
         return self.device
 
-class CustomTOTPDeviceForm(TOTPDeviceForm):
-    token = forms.CharField(label="Token", max_length=6)
+class CustomTOTPDeviceForm(forms.Form):
+    """Form used in the generator step to display the QR code."""
 
-    def __init__(self, *args, user=None, device=None, key=None, **kwargs):
+    def __init__(self, *args, user=None, device=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.device = device
         logger.debug("🛠 CustomTOTPDeviceForm INIT: device=%s", self.device)
-        super().__init__(key=key, user=user, **kwargs)
 
         self.qr_code = None
         self.secret_b32 = None
@@ -147,20 +147,11 @@ class CustomTOTPDeviceForm(TOTPDeviceForm):
                 logger.debug("📡 QR code generated for: %s", config_url)
             except BinasciiError:
                 logger.error("🚨 Device key is not a valid hex string: %s", self.device.key)
-            except Exception as e:
+            except Exception:
                 logger.exception("⚠️ Failed to generate QR code")
 
-    def clean_token(self):
-        token = self.cleaned_data.get("token")
-        if not self.device or not self.device.verify_token(token):
-            raise ValidationError("Entered token is not valid. Ensure your device time is accurate.")
-        return token
-
     def save(self):
-        if self.device:
-            self.device.confirmed = True
-            self.device.save()
-            logger.debug("✅ TOTP device confirmed and saved: %s", self.device)
+        """No-op save for compatibility with the wizard."""
         return self.device
 
     def get_context_data(self):

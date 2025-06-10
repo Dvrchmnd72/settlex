@@ -2,6 +2,7 @@ import binascii
 from functools import wraps
 import secrets
 from django_otp.decorators import otp_required
+from django_otp import login as otp_login
 from two_factor.views import LoginView as TwoFactorLoginView
 from django.shortcuts import redirect
 from django.db.models import Q  # ✅ Added to fix NameError
@@ -128,7 +129,7 @@ class SettlexTwoFactorSetupView(SetupView):
 
             if not device:
                 logger.debug("🔧 Creating new TOTP device.")
-                key = kwargs['key']
+                key = self.get_key(step)
                 device = TOTPDevice.objects.create(
                     user=self.request.user,
                     confirmed=False,
@@ -159,47 +160,24 @@ class SettlexTwoFactorSetupView(SetupView):
         if step == 'generator':
             logger.debug("📥 Generator form raw data: %s", form.data)
 
-            # Only call is_valid() once
             form_context = {}
-            is_valid = False
-
             try:
-                if form.is_bound:
-                    is_valid = form.is_valid()
-                    logger.debug("🧪 Form valid: %s", is_valid)
-
-                    if hasattr(form, 'get_context_data'):
-                        form_context = form.get_context_data()
-                        logger.debug(
-                            "🧬 Context from bound form: %s", form_context)
-
-                    if is_valid:
-                        logger.debug(
-                            "📸 TOTPDeviceForm.cleaned_data: %s",
-                            form.cleaned_data)
-                    else:
-                        logger.debug(
-                            "🧪 TOTPDeviceForm errors: %s", form.errors)
-                else:
-                    logger.debug("⚠️ Form not bound — skipping validation")
-                    if hasattr(form, 'get_context_data'):
-                        form_context = form.get_context_data()
-                        logger.debug(
-                            "🧬 Context from unbound form: %s", form_context)
-
+                if hasattr(form, 'get_context_data'):
+                    form_context = form.get_context_data()
+                    logger.debug(
+                        "🧬 Context from generator form: %s", form_context)
                 context.update(form_context)
-
-            except Exception as e:
+            except Exception:
                 logger.exception(
-                    "⚠️ Exception while validating form or building context")
+                    "⚠️ Exception while building generator context")
 
             logger.debug(
-                "🚨 QR Code base64 length: %s", len(
-                    context.get('qr_code_base64') or ''))
+                "🚨 QR Code base64 length: %s",
+                len(context.get('qr_code_base64') or ''))
             logger.debug("🚨 TOTP Secret: %s", context.get('totp_secret'))
             logger.debug(
-                "📸 TOTPDeviceForm.device: %s", getattr(
-                    form, 'device', None))
+                "📸 Generator form device: %s",
+                getattr(form, 'device', None))
             logger.debug("🧾 Form is_bound: %s", form.is_bound)
 
         return context
@@ -227,12 +205,23 @@ class SettlexTwoFactorSetupView(SetupView):
         return response
 
     def done(self, form_list, **kwargs):
-        """
-        Called when all forms are submitted and valid.
-        Redirect to login after 2FA setup is complete.
-        """
-        logger.info("✅ 2FA setup complete. Redirecting to login.")
-        return redirect(reverse_lazy('two_factor:login'))
+        """Finalize 2FA setup by validating the device and logging the user in."""
+        try:
+            del self.request.session[self.session_key_name]
+        except KeyError:
+            pass
+
+        device = None
+        for form in form_list:
+            if isinstance(form, ValidationStepForm):
+                device = form.save()
+                break
+
+        if device:
+            otp_login(self.request, device)
+
+        logger.info("✅ 2FA setup complete. Redirecting to success url.")
+        return redirect(self.get_success_url())
 
 # ✅ Custom Password Reset View to Fix NoReverseMatch
 class CustomPasswordResetView(PasswordResetView):
