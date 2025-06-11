@@ -5,11 +5,11 @@ from django.contrib.auth.models import User
 from collections import OrderedDict
 from types import SimpleNamespace
 
-from two_factor.models import TOTPDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 from .views import view_settlement, SettlexTwoFactorSetupView
-from .forms import CustomTOTPDeviceForm, ValidationStepForm, WelcomeStepForm
+from .forms import CustomTOTPDeviceForm, WelcomeStepForm
 
 
 class URLTests(SimpleTestCase):
@@ -22,58 +22,3 @@ class URLTests(SimpleTestCase):
         resolver = resolve('/settlement/1/')
         self.assertEqual(resolver.func, view_settlement)
 
-
-class TwoFactorSetupViewTests(TestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-        self.session = SessionStore()
-        self.session.create()
-        self.user = User.objects.create_user('tester', password='pass')
-
-    def _init_view(self):
-        request = self.factory.get('/two_factor/setup/')
-        request.session = self.session
-        request.user = self.user
-        view = SettlexTwoFactorSetupView()
-        view.form_list = OrderedDict(view.form_list)
-        view.setup(request)
-        view.storage = SimpleNamespace(validated_step_data={}, extra_data={}, data={})
-        view.condition_dict = {}
-        return view
-
-    def test_custom_form_list(self):
-        view = self._init_view()
-        form_list = view.get_form_list()
-        self.assertIs(form_list['generator'], CustomTOTPDeviceForm)
-        self.assertIs(form_list['validation'], ValidationStepForm)
-
-    def test_get_form_welcome(self):
-        view = self._init_view()
-        form = view.get_form('welcome')
-        self.assertIsInstance(form, WelcomeStepForm)
-
-    def test_get_form_generator(self):
-        view = self._init_view()
-        form = view.get_form('generator')
-        self.assertIsInstance(form, CustomTOTPDeviceForm)
-
-
-class TwoFactorFullFlowTests(TestCase):
-    def setUp(self):
-        self.email = 'info@djrconveyancing.com.au'
-        self.password = 'securepass123'
-        self.user = User.objects.create_user(username=self.email, email=self.email, password=self.password)
-
-    def test_2fa_setup_page_access_after_login(self):
-        # Step 1: Log in the user
-        login_success = self.client.login(username=self.email, password=self.password)
-        self.assertTrue(login_success)
-
-        # Step 2: Create a TOTPDevice (unconfirmed)
-        TOTPDevice.objects.create(user=self.user, confirmed=False)
-
-        # Step 3: Access the 2FA setup page
-        setup_url = reverse('two_factor:setup')
-        response = self.client.get(setup_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "QR code")

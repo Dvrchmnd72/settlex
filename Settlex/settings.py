@@ -41,18 +41,22 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',  # Basic security middleware
-    'django.contrib.sessions.middleware.SessionMiddleware',  # Manages session data
-    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Handles authentication
-    'django_otp.middleware.OTPMiddleware',  # OTP handling for 2FA (should be placed early)
-    'corsheaders.middleware.CorsMiddleware',  # Ensure CORS Middleware is included
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # CSRF protection
-    'Settlex.middleware.enforce_2fa.Enforce2FAMiddleware',  # Custom middleware for 2FA enforcement
-    'django.contrib.messages.middleware.MessageMiddleware',  # For flash messages
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',  # Protection against clickjacking
-    'two_factor.middleware.threadlocals.ThreadLocals',  # Optional: Useful for managing 2FA context
+    'django.middleware.locale.LocaleMiddleware',  # This handles language and timezone settings
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'Settlex.middleware.enforce_2fa.Enforce2FAMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'two_factor.middleware.threadlocals.ThreadLocals',
 ]
+
+
+
 
 
 ROOT_URLCONF = 'Settlex.urls'
@@ -73,6 +77,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 "settlements_app.context_processors.chat_visibility",
+                'settlements_app.context_processors.latest_instruction',
             ],
         },
     },
@@ -156,6 +161,7 @@ TWO_FACTOR_WIZARD_CLASS = 'two_factor.views.utils.WizardStorageSession'
 TWO_FACTOR_CALL_GATEWAY = 'two_factor.gateways.fake.Fake'
 TWO_FACTOR_SMS_GATEWAY = 'two_factor.gateways.fake.Fake'
 
+TWO_FACTOR_PATCH_ADMIN = False
 
 # Additional Security Headers
 SECURE_BROWSER_XSS_FILTER = True  # Prevent Cross-Site Scripting (XSS)

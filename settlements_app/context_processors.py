@@ -1,15 +1,16 @@
+from .models import Instruction
+
 def chat_visibility(request):
     """
     Controls whether the chat widget should be shown based on the current path.
     """
     path = request.path
 
-    # Paths or prefixes where chat should be disabled
     excluded_prefixes = [
         "/login/",
         "/account/login/",
         "/account/two_factor/",
-        "/two_factor/",  # Catch any two_factor views
+        "/two_factor/",
         "/password-reset/",
         "/reset/",
         "/admin/",
@@ -20,3 +21,20 @@ def chat_visibility(request):
     return {
         "enable_chat": show_chat
     }
+
+
+def latest_instruction(request):
+    """
+    Adds the user's latest instruction to the template context.
+    """
+    if request.user.is_authenticated:
+        try:
+            solicitor = request.user.solicitor  # This assumes a OneToOne link: Solicitor.user
+            latest = Instruction.objects.filter(solicitor=solicitor).last()
+        except Exception:
+            latest = None
+
+        return {
+            'latest_instruction': latest
+        }
+    return {}

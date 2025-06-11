@@ -2,12 +2,14 @@ import binascii
 from functools import wraps
 import secrets
 from django_otp.decorators import otp_required
+from django_otp import login as otp_login
 from two_factor.views import LoginView as TwoFactorLoginView
 from django.shortcuts import redirect
 from django.db.models import Q  # ✅ Added to fix NameError
 from .forms import InstructionForm
 # ✅ Ensure ChatMessage is imported
 from .models import Instruction, Solicitor, Document, Firm, ChatMessage
+from .forms import DocumentUploadForm
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import PasswordResetView
@@ -80,6 +82,20 @@ class SettlexTwoFactorSetupView(SetupView):
 
     template_name = 'two_factor/setup.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        # 🚫 Bypass 2FA wizard for superusers
+        if request.user.is_superuser:
+            logger.debug("🚫 Superuser detected, skipping 2FA setup.")
+            return redirect('admin:index')
+
+        # ✅ Skip setup if user already has confirmed TOTP device
+        existing = TOTPDevice.objects.filter(user=request.user, confirmed=True).first()
+        if existing:
+            logger.debug("🔁 User already has confirmed device, redirecting to dashboard.")
+            return redirect('settlements_app:my_settlements')
+
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_list(self):
         form_list = super().get_form_list()
         form_list['generator'] = CustomTOTPDeviceForm
@@ -104,20 +120,30 @@ class SettlexTwoFactorSetupView(SetupView):
         return None
 
 
-
     def get_form(self, step=None, data=None, files=None):
         step = step or self.steps.current or self.steps.first
         form_class = self.form_list[step]
-        logger.debug(
-            "📋 get_form called — step=%s, form_class=%s",
-            step,
-            form_class.__name__)
+        logger.debug("📋 get_form called — step=%s, form_class=%s", step, form_class.__name__)
+
         kwargs = self.get_form_kwargs(step)
+
+        # ✅ FIX 3 — Prevent recreating TOTPDevice after user has confirmed setup
+        if step in ('generator', 'validation'):
+            confirmed_device = TOTPDevice.objects.filter(user=self.request.user, confirmed=True).first()
+            if confirmed_device:
+                logger.debug("✅ Confirmed TOTPDevice already exists for user %s — skipping new device setup", self.request.user)
+                if 'device' in inspect.signature(form_class).parameters:
+                    kwargs['device'] = confirmed_device
+                if data is None:
+                    data = self.request.POST
+                return form_class(data=data, files=files, **kwargs)
 
         device = None
         if step in ('generator', 'validation'):
             extra_data = self.storage.extra_data or {}
             device_id = extra_data.get('device_id')
+
+            logger.debug("📦 Looking for device_id: %s in extra_data", device_id)
 
             if device_id:
                 try:
@@ -127,8 +153,8 @@ class SettlexTwoFactorSetupView(SetupView):
                     logger.warning("⚠️ Invalid or missing device_id; creating new TOTPDevice")
 
             if not device:
-                logger.debug("🔧 Creating new TOTP device.")
-                key = kwargs['key']
+                logger.debug("🔧 No existing device found, creating new TOTP device.")
+                key = self.get_key(step)
                 device = TOTPDevice.objects.create(
                     user=self.request.user,
                     confirmed=False,
@@ -137,23 +163,20 @@ class SettlexTwoFactorSetupView(SetupView):
                 )
                 extra_data['device_id'] = device.id
                 self.storage.extra_data = extra_data
-                # Persist wizard data to the user's session
                 self.request.session[self.storage.prefix] = self.storage.data
                 logger.debug("🛠 Created new TOTPDevice (ID: %s) with key: %s", device.id, device.key)
 
-        # Ensure that the device is properly passed to the form
+            logger.debug("📦 Device at this step: %s", device)
+
+        # ✅ Always pass device if expected by the form
         if 'device' in inspect.signature(form_class).parameters:
             kwargs['device'] = device
+            logger.debug("📦 Passing device to form: %s", device)
 
-        # Include prefix and initial data like the base wizard implementation
-        kwargs.update({
-            'prefix': self.get_form_prefix(step, form_class),
-            'initial': self.get_form_initial(step),
-        })
+        if data is None:
+            data = self.request.POST  # Ensure binding POST data
 
         return form_class(data=data, files=files, **kwargs)
-
-
 
     def get_context_data(self, form, **kwargs):
         step = self.steps.current or self.steps.first
@@ -165,48 +188,35 @@ class SettlexTwoFactorSetupView(SetupView):
         if step == 'generator':
             logger.debug("📥 Generator form raw data: %s", form.data)
 
-            # Only call is_valid() once
             form_context = {}
-            is_valid = False
-
             try:
-                if form.is_bound:
-                    is_valid = form.is_valid()
-                    logger.debug("🧪 Form valid: %s", is_valid)
-
-                    if hasattr(form, 'get_context_data'):
-                        form_context = form.get_context_data()
-                        logger.debug(
-                            "🧬 Context from bound form: %s", form_context)
-
-                    if is_valid:
-                        logger.debug(
-                            "📸 TOTPDeviceForm.cleaned_data: %s",
-                            form.cleaned_data)
-                    else:
-                        logger.debug(
-                            "🧪 TOTPDeviceForm errors: %s", form.errors)
-                else:
-                    logger.debug("⚠️ Form not bound — skipping validation")
-                    if hasattr(form, 'get_context_data'):
-                        form_context = form.get_context_data()
-                        logger.debug(
-                            "🧬 Context from unbound form: %s", form_context)
-
+                if hasattr(form, 'get_context_data'):
+                    form_context = form.get_context_data()
+                    logger.debug("🧬 Context from generator form: %s", form_context)
                 context.update(form_context)
-
-            except Exception as e:
-                logger.exception(
-                    "⚠️ Exception while validating form or building context")
+            except Exception:
+                logger.exception("⚠️ Exception while building generator context")
 
             logger.debug(
-                "🚨 QR Code base64 length: %s", len(
-                    context.get('qr_code_base64') or ''))
+                "🚨 QR Code base64 length: %s",
+                len(context.get('qr_code_base64') or ''))
             logger.debug("🚨 TOTP Secret: %s", context.get('totp_secret'))
-            logger.debug(
-                "📸 TOTPDeviceForm.device: %s", getattr(
-                    form, 'device', None))
+            logger.debug("📸 Generator form device: %s", getattr(form, 'device', None))
             logger.debug("🧾 Form is_bound: %s", form.is_bound)
+
+        elif step == 'validation':
+            logger.debug("📥 Validation form raw data: %s", form.data)
+
+            form_context = {}
+            try:
+                if hasattr(form, 'get_context_data'):
+                    form_context = form.get_context_data()
+                    logger.debug("🧬 Context from validation form: %s", form_context)
+                context.update(form_context)
+            except Exception:
+                logger.exception("⚠️ Exception while building validation context")
+
+            logger.debug("🚨 Validation step context: %s", context)
 
         return context
 
@@ -233,12 +243,42 @@ class SettlexTwoFactorSetupView(SetupView):
         return response
 
     def done(self, form_list, **kwargs):
-        """
-        Called when all forms are submitted and valid.
-        Redirect to login after 2FA setup is complete.
-        """
-        logger.info("✅ 2FA setup complete. Redirecting to login.")
-        return redirect(reverse_lazy('two_factor:login'))
+        try:
+            del self.request.session[self.session_key_name]
+        except KeyError:
+            pass
+
+        device = None
+        for form in form_list:
+            if isinstance(form, ValidationStepForm):
+                device = form.save()
+                break
+
+        if device:
+            # ✅ Mark as confirmed
+            device.confirmed = True
+
+            # ✅ OPTIONAL: Assign a name (helpful for admin/debugging)
+            device.name = "Primary Device"
+
+            device.save()
+
+            # ✅ Ensure it's the default device (this is critical to avoid redirect loop)
+            from two_factor.utils import default_device
+            from django_otp.plugins.otp_totp.models import TOTPDevice
+
+            TOTPDevice.objects.filter(user=self.request.user).exclude(id=device.id).update(name=None)
+            device.name = "default"
+            device.save()
+
+            # ✅ Log the device details
+            logger.info("✅ 2FA setup complete for user: %s — redirecting to dashboard.", self.request.user)
+            logger.debug("🔎 Default device now: %s", default_device(self.request.user))
+
+            # ✅ Log the user in with 2FA
+            otp_login(self.request, device)
+
+        return redirect('settlements_app:my_settlements')
 
 # ✅ Custom Password Reset View to Fix NoReverseMatch
 class CustomPasswordResetView(PasswordResetView):

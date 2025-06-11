@@ -65,8 +65,8 @@
             </form>
 
           {% elif wizard.steps.current == 'validation' %}
-            <p class="text-muted mb-3">
-              Enter the 6-digit code from your authenticator app to finish.
+            <p class="text-muted mb-4">
+              Enter the 6-digit code from your authenticator app to verify your identity.
             </p>
 
             <form method="post">
@@ -82,7 +82,7 @@
                 </div>
               {% endfor %}
 
-              <button type="submit" class="btn btn-success w-100">Verify and Enable</button>
+              <button type="submit" class="btn btn-primary w-100">Verify</button>
             </form>
 
           {% else %}

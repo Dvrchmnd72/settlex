@@ -10,7 +10,7 @@
             <h5>Upload Document</h5>
         </div>
         <div class="card-body">
-            <form action="{% url 'settlements_app:upload_documents' %}{% if preselected_instruction %}?settlement_id={{ preselected_instruction.id }}{% endif %}" method="post" enctype="multipart/form-data">
+            <form action="{% url 'settlements_app:upload_documents' preselected_instruction.id %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 
                 {% if preselected_instruction %}
