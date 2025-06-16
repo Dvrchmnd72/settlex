@@ -18,22 +18,24 @@
           {% endfor %}
         {% endif %}
 
-        <form method="post">
+        <form method="post" class="login-form">
           {% csrf_token %}
           {{ wizard.management_form }}
 
           {% if wizard.steps.current == 'auth' %}
-            <div class="mb-3">
-              <label for="id_auth-username" class="form-label">Email or Username</label>
-              {{ wizard.form.username }}
-            </div>
-            <div class="mb-3">
-              <label for="id_auth-password" class="form-label">Password</label>
-              <div class="input-group">
-                {{ wizard.form.password }}
-                <button type="button" class="btn btn-outline-secondary" id="togglePassword">
-                  <i class="fas fa-eye"></i>
-                </button>
+            <div class="form-inner">
+              <div class="mb-3">
+                <label for="id_auth-username" class="form-label">Email or Username</label>
+                {{ wizard.form.username }}
+              </div>
+              <div class="mb-3">
+                <label for="id_auth-password" class="form-label">Password</label>
+                <div class="input-group">
+                  {{ wizard.form.password }}
+                  <button type="button" class="btn btn-outline-secondary" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
           {% elif wizard.steps.current == 'token' %}

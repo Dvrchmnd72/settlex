@@ -214,3 +214,10 @@ html, body {
     display: block;
 }
 
+/* Ensure input groups are centered like other fields */
+.form-inner .input-group {
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
