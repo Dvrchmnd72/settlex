@@ -4,6 +4,7 @@ from urllib.parse import quote
 from django.contrib.auth.models import User
 from .models import Instruction, Document, Firm, Solicitor
 from two_factor.forms import TOTPDeviceForm, AuthenticationTokenForm
+from django.contrib.auth.forms import AuthenticationForm
 from django_otp.plugins.otp_totp.models import TOTPDevice
 import qrcode
 import base64
@@ -163,3 +164,15 @@ class CustomTOTPDeviceForm(forms.Form):
         }
         logger.debug("📡 CustomTOTPDeviceForm.get_context_data(): %s", context)
         return context
+
+class LoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super(LoginForm, self).__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Email or Username'
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'form-control',
+            'placeholder': 'Password'
+        })

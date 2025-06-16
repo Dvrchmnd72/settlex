@@ -21,8 +21,7 @@
         <a href="{% url 'settlements_app:new_instruction' %}" class="{% if request.path == '/settlex/new-instruction/' %}active{% endif %}">
             <i class="fas fa-plus"></i> New Instruction
         </a>
-        <a href="{% url 'settlements_app:upload_documents' %}" class="{% if request.path == '/settlex/upload-documents/' %}active{% endif %}">
-            <i class="fas fa-upload"></i> Upload Docs
+        <a href="{% url 'settlements_app:upload_documents' %}?settlement_id={{ settlement.id }}" class="{% if request.path == '/settlex/upload-documents/' %}active{% endif %}">
         </a>
         <a href="{% url 'settlements_app:logout' %}">
             <i class="fas fa-sign-out-alt"></i> Logout

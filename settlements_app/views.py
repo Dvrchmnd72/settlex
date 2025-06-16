@@ -1,76 +1,70 @@
-import binascii
-from functools import wraps
-import secrets
-from django_otp.decorators import otp_required
-from django_otp import login as otp_login
-from two_factor.views import LoginView as TwoFactorLoginView
-from django.shortcuts import redirect
-from django.db.models import Q  # ✅ Added to fix NameError
-from .forms import InstructionForm
-# ✅ Ensure ChatMessage is imported
-from .models import Instruction, Solicitor, Document, Firm, ChatMessage
-from .forms import DocumentUploadForm
-from django.db import transaction
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.views import PasswordResetView
-from django.http import JsonResponse, HttpResponse  # ✅ Needed for API responses
-from django.core.mail import send_mail
-from django.conf import settings
-from django.contrib import messages
-# ✅ Keep only User model, AnonymousUser not needed
-from django.contrib.auth.models import User
-from django.contrib.auth import login, authenticate, logout
-from django.urls import reverse_lazy
-from django.shortcuts import render, redirect, get_object_or_404
-from django.utils.timezone import localtime, is_naive, get_current_timezone, make_aware, now
-from django.contrib.auth.decorators import login_required
-import base64
 import os
-from django.utils.crypto import get_random_string
-from .forms import WelcomeStepForm, ValidationStepForm
-from two_factor.forms import DeviceValidationForm
-from two_factor.forms import TOTPDeviceForm
-import inspect
-from django.contrib.auth.forms import AuthenticationForm
-from django.http import HttpResponseRedirect
-from django.views.decorators.csrf import csrf_protect
-from django import forms
-from urllib.parse import quote
-import time
-import traceback
-from two_factor.utils import default_device
 import json
 import time
-import traceback
-import inspect  # make sure this is at the top
-from datetime import timedelta
-from django.urls import reverse
-from datetime import datetime
-from django.utils.decorators import method_decorator
-from settlements_app.forms import CustomTOTPDeviceForm
-from two_factor.views.core import SetupView
-from two_factor.views.core import LoginView
-import pytz  # ✅ Required for timezone handling
-from django_otp.plugins.otp_totp.models import TOTPDevice
+import base64
+import binascii
+import secrets
 import logging
-logger = logging.getLogger('settlements_app')
+import inspect
+import traceback
+from functools import wraps
+from datetime import datetime, timedelta
+from urllib.parse import quote
+
+import pytz
+from django import forms
+from django.conf import settings
+from django.urls import reverse, reverse_lazy
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.utils.decorators import method_decorator
+from django.utils.timezone import now, localtime, is_naive, get_current_timezone, make_aware
+from django.contrib import messages
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth.views import LoginView as DjangoLoginView, PasswordResetView
+from django.db import transaction
+from django.db.models import Q
+
+from django_otp import login as otp_login
+from django_otp.decorators import otp_required
+from django_otp.plugins.otp_totp.models import TOTPDevice
+
+from two_factor.utils import default_device
+from two_factor.forms import AuthenticationTokenForm, BackupTokenForm, DeviceValidationForm, TOTPDeviceForm
+from two_factor.views import LoginView as TwoFactorLoginView
+from two_factor.views.core import SetupView
+
+from .models import Instruction, Solicitor, Document, Firm, ChatMessage
+from .forms import (
+    LoginForm,
+    WelcomeStepForm,
+    ValidationStepForm,
+    InstructionForm,
+    DocumentUploadForm,
+    CustomTOTPDeviceForm,
+)
+
+# Logger setup
+logger = logging.getLogger(__name__)
 logger.debug("🚀 Logger initialized and views.py loaded")
 
-logger = logging.getLogger(__name__)
 
-
-class SettlexTwoFactorLoginView(LoginView):
+class SettlexTwoFactorLoginView(TwoFactorLoginView):
     template_name = "two_factor/login.html"
+
+    def get_form_list(self):
+        return {
+            'auth': LoginForm,  # ✅ Your custom LoginForm
+            'token': AuthenticationTokenForm,
+            'backup': BackupTokenForm,
+        }
 
     def dispatch(self, request, *args, **kwargs):
         logger.debug("🚀 SettlexTwoFactorLoginView: dispatch triggered.")
         return super().dispatch(request, *args, **kwargs)
-
-    def get(self, request, *args, **kwargs):
-        logger.debug(
-            f"🔍 SettlexTwoFactorLoginView: GET at step '{self.steps.current}'")
-        return super().get(request, *args, **kwargs)
-
 
 @method_decorator(login_required, name='dispatch')
 class SettlexTwoFactorSetupView(SetupView):
@@ -675,7 +669,7 @@ def upload_documents(request):
             solicitor__firm=solicitor.firm).order_by('-settlement_date')
 
         preselected_instruction = None
-        settlement_id = request.GET.get('settlement_id')
+        settlement_id = request.GET.get('settlement_id') or request.POST.get('instruction_id')
 
         if settlement_id:
             try:

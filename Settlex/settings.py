@@ -105,9 +105,11 @@ TIME_ZONE = 'Australia/Brisbane'
 USE_I18N = True
 USE_TZ = True
 
-# Static & Media Files
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# During development: where your source static files (e.g. CSS, JS, images) live
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# During deployment: where collectstatic puts the final compiled static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -156,6 +158,11 @@ CSRF_USE_SESSIONS = True  # Store CSRF token in session
 
 # 🔐 Two-Factor Authentication Wizard Storage
 TWO_FACTOR_WIZARD_CLASS = 'two_factor.views.utils.WizardStorageSession'
+
+# 🔐 Custom form overrides for 2FA steps
+TWO_FACTOR_AUTHENTICATION_STEP_FORMS = {
+    'auth': 'settlements_app.forms.LoginForm',
+}
 
 # (Optional) Dummy gateways for development or if SMS/call are unused
 TWO_FACTOR_CALL_GATEWAY = 'two_factor.gateways.fake.Fake'

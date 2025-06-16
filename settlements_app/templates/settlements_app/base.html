@@ -1,7 +1,5 @@
 {% load static %}
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'settlements_app/style.css' %}">
+    <!--
     <style>
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
         .navbar { background-color: #333; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
@@ -65,6 +64,7 @@
         .file-upload-button { background: none; border: none; font-size: 1.2rem; cursor: pointer; margin-right: 0.5rem; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
     </style>
+    -->
 </head>
 <body>
     {% block content %}
@@ -88,7 +88,7 @@
                 <i class="fas fa-plus"></i> New Instruction
             </a>
             {% if latest_instruction %}
-                <a href="{% url 'settlements_app:upload_documents' latest_instruction.id %}"
+                <a href="{% url 'settlements_app:upload_documents' %}?settlement_id={{ latest_instruction.id }}"
                    class="{% if request.path|slice:":24" == '/settlex/upload-documents/' %}active{% endif %}">
                     <i class="fas fa-upload"></i> Upload Docs
                 </a>
